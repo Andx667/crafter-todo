@@ -3,11 +3,16 @@
 CRAFTER_TODO_UI = {
 	mainFrame = nil,
 	todoListFrame = nil,
+	shoppingListFrame = nil,
 	editFrame = nil,
 	minimapButton = nil,
+	tradeSkillButton = nil,
 	isVisible = false,
 	selectedTodoId = nil,
+	selectedCategory = "All",
+	activePanel = "todos",
 	todoFrames = {},
+	shoppingRowFrames = {},
 }
 
 -- Create the main window
@@ -75,18 +80,83 @@ function CRAFTER_TODO_UI:CreateMainFrame()
 		CRAFTER_TODO_UI:ToggleMainWindow()
 	end)
 	
+	-- Tabs
+	local todosTab = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+	todosTab:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -35)
+	todosTab:SetSize(90, 20)
+	todosTab:SetText(CRAFTER_TODO_GetString("todos_tab"))
+	todosTab:SetScript("OnClick", function()
+		CRAFTER_TODO_UI.activePanel = "todos"
+		CRAFTER_TODO_UI:UpdatePanelVisibility()
+	end)
+
+	local shoppingTab = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+	shoppingTab:SetPoint("LEFT", todosTab, "RIGHT", 5, 0)
+	shoppingTab:SetSize(120, 20)
+	shoppingTab:SetText(CRAFTER_TODO_GetString("shopping_tab"))
+	shoppingTab:SetScript("OnClick", function()
+		CRAFTER_TODO_UI.activePanel = "shopping"
+		CRAFTER_TODO_UI:UpdatePanelVisibility()
+	end)
+
+	-- Category Filter
+	local categoryLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	categoryLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -58)
+	categoryLabel:SetText(CRAFTER_TODO_GetString("category") .. ":")
+
+	local categoryDropdown = CreateFrame("Frame", "CrafterTodoCategoryDropdown", frame, "UIDropDownMenuTemplate")
+	categoryDropdown:SetPoint("TOPLEFT", frame, "TOPLEFT", -10, -75)
+	UIDropDownMenu_SetWidth(categoryDropdown, 160)
+	UIDropDownMenu_SetText(categoryDropdown, CRAFTER_TODO_GetString("all_categories"))
+
+	UIDropDownMenu_Initialize(categoryDropdown, function(_, level)
+		local info = UIDropDownMenu_CreateInfo()
+		info.text = CRAFTER_TODO_GetString("all_categories")
+		info.func = function()
+			CRAFTER_TODO_UI.selectedCategory = "All"
+			UIDropDownMenu_SetText(categoryDropdown, CRAFTER_TODO_GetString("all_categories"))
+			CRAFTER_TODO_UI:RefreshTodoList()
+			CRAFTER_TODO_UI:RefreshShoppingList()
+		end
+		UIDropDownMenu_AddButton(info, level)
+
+		for _, category in ipairs(CRAFTER_TODO:GetCategories()) do
+			local catInfo = UIDropDownMenu_CreateInfo()
+			catInfo.text = category
+			catInfo.func = function()
+				CRAFTER_TODO_UI.selectedCategory = category
+				UIDropDownMenu_SetText(categoryDropdown, category)
+				CRAFTER_TODO_UI:RefreshTodoList()
+				CRAFTER_TODO_UI:RefreshShoppingList()
+			end
+			UIDropDownMenu_AddButton(catInfo, level)
+		end
+	end)
+
 	-- Scroll Frame for Todos
-	local scrollFrame = CreateFrame("ScrollFrame", "CrafterTodoScrollFrame", frame, "UIPanelScrollFrameTemplate")
-	scrollFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -40)
-	scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -30, 10)
-	
-	local listFrame = CreateFrame("Frame", nil, scrollFrame)
-	listFrame:SetSize(scrollFrame:GetWidth() - 10, 20)
-	scrollFrame:SetScrollChild(listFrame)
-	
+	local todoScrollFrame = CreateFrame("ScrollFrame", "CrafterTodoScrollFrame", frame, "UIPanelScrollFrameTemplate")
+	todoScrollFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -105)
+	todoScrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -30, 10)
+
+	local todoListFrame = CreateFrame("Frame", nil, todoScrollFrame)
+	todoListFrame:SetSize(todoScrollFrame:GetWidth() - 10, 20)
+	todoScrollFrame:SetScrollChild(todoListFrame)
+
+	-- Scroll Frame for Shopping List
+	local shoppingScrollFrame = CreateFrame("ScrollFrame", "CrafterTodoShoppingScrollFrame", frame, "UIPanelScrollFrameTemplate")
+	shoppingScrollFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -105)
+	shoppingScrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -30, 10)
+
+	local shoppingListFrame = CreateFrame("Frame", nil, shoppingScrollFrame)
+	shoppingListFrame:SetSize(shoppingScrollFrame:GetWidth() - 10, 20)
+	shoppingScrollFrame:SetScrollChild(shoppingListFrame)
+	shoppingScrollFrame:Hide()
+
 	self.mainFrame = frame
-	self.todoListFrame = listFrame
-	self.scrollFrame = scrollFrame
+	self.todoListFrame = todoListFrame
+	self.shoppingListFrame = shoppingListFrame
+	self.scrollFrame = todoScrollFrame
+	self.shoppingScrollFrame = shoppingScrollFrame
 	
 	-- Add Todo Button
 	local addBtn = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
@@ -124,6 +194,7 @@ function CRAFTER_TODO_UI:RefreshTodoList()
 	local todos = CRAFTER_TODO:GetAllTodos()
 	local yOffset = 0
 	local hasSelected = false
+	local useFilter = self.selectedCategory and self.selectedCategory ~= "All"
 	
 	if #todos == 0 then
 		self.selectedTodoId = nil
@@ -134,20 +205,205 @@ function CRAFTER_TODO_UI:RefreshTodoList()
 		yOffset = 30
 	else
 		for _, todo in ipairs(todos) do
-			if todo.id == self.selectedTodoId then
-				hasSelected = true
+			if not useFilter or todo.category == self.selectedCategory then
+				if todo.id == self.selectedTodoId then
+					hasSelected = true
+				end
+				local todoFrame = self:CreateTodoFrame(todo, yOffset)
+				table.insert(self.todoFrames, todoFrame)
+				yOffset = yOffset + self:GetTodoFrameHeight(todo)
 			end
-			local todoFrame = self:CreateTodoFrame(todo, yOffset)
-			table.insert(self.todoFrames, todoFrame)
-			yOffset = yOffset + self:GetTodoFrameHeight(todo)
 		end
+	end
+	
+	if #todos > 0 and yOffset == 0 then
+		local emptyText = self.todoListFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		emptyText:SetPoint("TOPLEFT", self.todoListFrame, "TOPLEFT", 10, -10)
+		emptyText:SetText(CRAFTER_TODO_GetString("no_todos"))
+		emptyText:SetTextColor(0.8, 0.8, 0.8)
+		yOffset = 30
 	end
 	
 	if self.selectedTodoId and not hasSelected then
 		self.selectedTodoId = nil
 	end
+	self:UpdateTradeSkillButton()
 	
 	self.todoListFrame:SetHeight(math.max(yOffset, 20))
+end
+
+-- Update which panel is visible
+function CRAFTER_TODO_UI:UpdatePanelVisibility()
+	if self.activePanel == "shopping" then
+		if self.scrollFrame then
+			self.scrollFrame:Hide()
+		end
+		if self.shoppingScrollFrame then
+			self.shoppingScrollFrame:Show()
+		end
+		self:RefreshShoppingList()
+	else
+		if self.shoppingScrollFrame then
+			self.shoppingScrollFrame:Hide()
+		end
+		if self.scrollFrame then
+			self.scrollFrame:Show()
+		end
+		self:RefreshTodoList()
+	end
+end
+
+-- Refresh the shopping list display
+function CRAFTER_TODO_UI:RefreshShoppingList()
+	if not self.shoppingListFrame then
+		return
+	end
+
+	for _, frame in ipairs(self.shoppingRowFrames) do
+		frame:Hide()
+		frame:SetParent(nil)
+	end
+	self.shoppingRowFrames = {}
+
+	local items = CRAFTER_TODO:GetShoppingList(self.selectedCategory)
+	local yOffset = 0
+
+	if #items == 0 then
+		local emptyText = self.shoppingListFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		emptyText:SetPoint("TOPLEFT", self.shoppingListFrame, "TOPLEFT", 10, -10)
+		emptyText:SetText(CRAFTER_TODO_GetString("no_shopping_items"))
+		emptyText:SetTextColor(0.8, 0.8, 0.8)
+		yOffset = 30
+	else
+		for _, item in ipairs(items) do
+			local missing = math.max((item.required or 0) - (item.owned or 0), 0)
+			if missing > 0 then
+				local row = CreateFrame("Frame", nil, self.shoppingListFrame)
+				row:SetSize(self.shoppingListFrame:GetWidth() - 20, 25)
+				row:SetPoint("TOPLEFT", self.shoppingListFrame, "TOPLEFT", 10, -yOffset)
+				row:SetBackdrop({
+					bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+					edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+					tile = true,
+					tileSize = 16,
+					edgeSize = 1,
+				})
+				row:SetBackdropColor(0.15, 0.15, 0.15, 0.5)
+				row:SetBackdropBorderColor(0.4, 0.4, 0.4)
+
+				local nameText = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+				nameText:SetPoint("LEFT", row, "LEFT", 8, 0)
+				nameText:SetText(item.name or "Unknown")
+
+				local countText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+				countText:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+				countText:SetText(string.format("Need: %d (Own: %d)", missing, item.owned or 0))
+				countText:SetTextColor(0.9, 0.9, 0.7)
+
+				table.insert(self.shoppingRowFrames, row)
+				yOffset = yOffset + 28
+			end
+		end
+	end
+
+	if #items > 0 and yOffset == 0 then
+		local emptyText = self.shoppingListFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		emptyText:SetPoint("TOPLEFT", self.shoppingListFrame, "TOPLEFT", 10, -10)
+		emptyText:SetText(CRAFTER_TODO_GetString("no_shopping_items"))
+		emptyText:SetTextColor(0.8, 0.8, 0.8)
+		yOffset = 30
+	end
+
+	self.shoppingListFrame:SetHeight(math.max(yOffset, 20))
+end
+
+-- Create a button on the TradeSkill frame to add reagents
+function CRAFTER_TODO_UI:CreateTradeSkillButton()
+	if self.tradeSkillButton or not TradeSkillFrame then
+		return
+	end
+
+	local button = CreateFrame("Button", "CrafterTodoAddRecipeButton", TradeSkillFrame, "GameMenuButtonTemplate")
+	button:SetSize(140, 20)
+	button:SetText(CRAFTER_TODO_GetString("add_recipe_materials"))
+	if TradeSkillCreateButton then
+		button:SetPoint("LEFT", TradeSkillCreateButton, "RIGHT", 6, 0)
+	else
+		button:SetPoint("BOTTOMLEFT", TradeSkillFrame, "BOTTOMLEFT", 70, 70)
+	end
+	button:SetScript("OnClick", function()
+		CRAFTER_TODO_UI:AddSelectedRecipeToTodo()
+	end)
+
+	button:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_TOP")
+		GameTooltip:SetText("Add reagents to selected todo", 1, 1, 1)
+		GameTooltip:AddLine("Select a materials todo, then click this button", 0.9, 0.9, 0.9)
+		GameTooltip:Show()
+	end)
+	button:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
+
+	self.tradeSkillButton = button
+	self:UpdateTradeSkillButton()
+end
+
+-- Enable or disable the TradeSkill button based on selection
+function CRAFTER_TODO_UI:UpdateTradeSkillButton()
+	if not self.tradeSkillButton then
+		return
+	end
+
+	local selectedTodo = CRAFTER_TODO:GetTodo(self.selectedTodoId)
+	local hasTodo = selectedTodo and selectedTodo.type == "materials"
+	local index = GetTradeSkillSelectionIndex and GetTradeSkillSelectionIndex() or 0
+	local _, tradeSkillType = GetTradeSkillInfo(index)
+	if hasTodo and index and index > 0 and tradeSkillType ~= "header" then
+		self.tradeSkillButton:Enable()
+	else
+		self.tradeSkillButton:Disable()
+	end
+end
+
+-- Add reagents from the selected recipe to the current materials todo
+function CRAFTER_TODO_UI:AddSelectedRecipeToTodo()
+	local selectedTodo = CRAFTER_TODO:GetTodo(self.selectedTodoId)
+	if not selectedTodo or selectedTodo.type ~= "materials" then
+		print("|cffff0000Please select a materials-type todo first|r")
+		return
+	end
+
+	local index = GetTradeSkillSelectionIndex and GetTradeSkillSelectionIndex() or 0
+	if not index or index <= 0 then
+		print("|cffff0000Please select a recipe first|r")
+		return
+	end
+
+	local recipeName, tradeSkillType = GetTradeSkillInfo(index)
+	if tradeSkillType == "header" then
+		print("|cffff0000Please select a recipe, not a category header|r")
+		return
+	end
+
+	local numReagents = GetTradeSkillNumReagents(index) or 0
+	if numReagents == 0 then
+		print("|cffff0000No reagents found for this recipe|r")
+		return
+	end
+
+	for i = 1, numReagents do
+		local name, _, count = GetTradeSkillReagentInfo(index, i)
+		local link = GetTradeSkillReagentItemLink(index, i)
+		local itemId = link and tonumber(string.match(link, "item:(%d+)")) or 0
+		if name and count then
+			CRAFTER_TODO:AddOrUpdateMaterial(selectedTodo.id, name, count, itemId)
+		end
+	end
+
+	CRAFTER_TODO_UI:RefreshTodoList()
+	CRAFTER_TODO_UI:RefreshShoppingList()
+	print(string.format("|cff00ff00Added reagents for %s|r", recipeName or "recipe"))
 end
 
 -- Create a single todo frame
@@ -168,6 +424,7 @@ function CRAFTER_TODO_UI:CreateTodoFrame(todo, yOffset)
 	frame:SetScript("OnMouseDown", function()
 		CRAFTER_TODO_UI.selectedTodoId = todo.id
 		CRAFTER_TODO_UI:RefreshTodoList()
+		CRAFTER_TODO_UI:UpdateTradeSkillButton()
 	end)
 	
 	local bgColor = todo.completed and {0.2, 0.3, 0.2, 0.5} or {0.15, 0.15, 0.15, 0.5}
@@ -197,7 +454,12 @@ function CRAFTER_TODO_UI:CreateTodoFrame(todo, yOffset)
 	else
 		titleText:SetTextColor(1, 1, 1)
 	end
-	titleText:SetText(todo.title)
+	local category = todo.category or "General"
+	if category ~= "General" then
+		titleText:SetText(string.format("%s (%s)", todo.title, category))
+	else
+		titleText:SetText(todo.title)
+	end
 	
 	-- Edit Button
 	local editBtn = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
@@ -322,6 +584,31 @@ function CRAFTER_TODO_UI:ShowEditFrame(todoId)
 		frame.selectedType = "materials"
 		materialsBtn:Enable()
 	end)
+
+	-- Category Selection
+	local categoryLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	categoryLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -145)
+	categoryLabel:SetText(CRAFTER_TODO_GetString("category") .. ":")
+
+	local categoryDropdown = CreateFrame("Frame", "CrafterTodoEditCategoryDropdown", frame, "UIDropDownMenuTemplate")
+	categoryDropdown:SetPoint("TOPLEFT", frame, "TOPLEFT", -10, -162)
+	UIDropDownMenu_SetWidth(categoryDropdown, 180)
+
+	local categories = CRAFTER_TODO:GetCategories()
+	frame.selectedCategory = todo and todo.category or (categories[1] or "General")
+	UIDropDownMenu_SetText(categoryDropdown, frame.selectedCategory)
+
+	UIDropDownMenu_Initialize(categoryDropdown, function(_, level)
+		for _, category in ipairs(categories) do
+			local info = UIDropDownMenu_CreateInfo()
+			info.text = category
+			info.func = function()
+				frame.selectedCategory = category
+				UIDropDownMenu_SetText(categoryDropdown, category)
+			end
+			UIDropDownMenu_AddButton(info, level)
+		end
+	end)
 	
 	-- Save Button
 	local saveBtn = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
@@ -332,11 +619,12 @@ function CRAFTER_TODO_UI:ShowEditFrame(todoId)
 		local title = titleInput:GetText()
 		if title == "" then title = "Unnamed Todo" end
 		local todoType = frame.selectedType or "plain"
+		local todoCategory = frame.selectedCategory or (categories[1] or "General")
 		
 		if isNew then
-			CRAFTER_TODO:AddTodo(title, todoType)
+			CRAFTER_TODO:AddTodo(title, todoType, todoCategory)
 		else
-			CRAFTER_TODO:UpdateTodo(todoId, title, todoType)
+			CRAFTER_TODO:UpdateTodo(todoId, title, todoType, todoCategory)
 		end
 		
 		CRAFTER_TODO_UI:RefreshTodoList()
@@ -370,7 +658,7 @@ function CRAFTER_TODO_UI:ToggleMainWindow()
 	else
 		self.mainFrame:Show()
 		self.isVisible = true
-		self:RefreshTodoList()
+		self:UpdatePanelVisibility()
 	end
 end
 
@@ -381,7 +669,7 @@ function CRAFTER_TODO_UI:ShowWindow()
 	end
 	self.mainFrame:Show()
 	self.isVisible = true
-	self:RefreshTodoList()
+	self:UpdatePanelVisibility()
 end
 
 -- Hide main window

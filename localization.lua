@@ -22,6 +22,12 @@ CRAFTER_TODO_STRINGS = {
 	["no_todos"] = "No todos yet. Create one to get started!",
 	["mark_complete"] = "Mark as Complete",
 	["unmark_complete"] = "Mark as Incomplete",
+	["todos_tab"] = "Todos",
+	["shopping_tab"] = "Shopping List",
+	["category"] = "Category",
+	["all_categories"] = "All",
+	["no_shopping_items"] = "No materials needed. You're all set!",
+	["add_recipe_materials"] = "Add Reagents",
 }
 
 function CRAFTER_TODO_GetString(key)

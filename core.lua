@@ -17,13 +17,17 @@ local function TryAddMaterialFromLink(link)
 
 	local itemName = GetItemInfo(itemId)
 	if not itemName then
-		return
+		itemName = link:match("%[(.-)%]")
+		if not itemName then
+			return
+		end
 	end
 
 	local selectedTodo = CRAFTER_TODO:GetTodo(CRAFTER_TODO_UI.selectedTodoId)
 	if selectedTodo and selectedTodo.type == "materials" then
-		CRAFTER_TODO:AddMaterial(selectedTodo.id, itemName, 1, itemId)
+		CRAFTER_TODO:AddOrUpdateMaterial(selectedTodo.id, itemName, 1, itemId)
 		CRAFTER_TODO_UI:RefreshTodoList()
+		CRAFTER_TODO_UI:RefreshShoppingList()
 		print(string.format("|cff00ff00Added %s to current todo|r", itemName))
 	else
 		print("|cffff0000Please select a materials-type todo first|r")
@@ -34,6 +38,10 @@ local eventFrame = CreateFrame("Frame", "CrafterTodoEventFrame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGOUT")
 eventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
+eventFrame:RegisterEvent("PLAYERBANKSLOTS_CHANGED")
+eventFrame:RegisterEvent("BANKFRAME_OPENED")
+eventFrame:RegisterEvent("TRADE_SKILL_SHOW")
+eventFrame:RegisterEvent("TRADE_SKILL_UPDATE")
 eventFrame:SetScript("OnEvent", function(_, event, ...)
 	CRAFTER_TODO_CORE:OnEvent(event, ...)
 end)
@@ -67,9 +75,12 @@ function CRAFTER_TODO_CORE:OnEvent(event, ...)
 		end
 	elseif event == "PLAYER_LOGOUT" then
 		-- Saved variables are automatically saved by WoW
-	elseif event == "BAG_UPDATE_DELAYED" then
+	elseif event == "BAG_UPDATE_DELAYED" or event == "PLAYERBANKSLOTS_CHANGED" or event == "BANKFRAME_OPENED" then
 		-- Update item counts in materials
 		CRAFTER_TODO_CORE:UpdateItemCounts()
+	elseif event == "TRADE_SKILL_SHOW" or event == "TRADE_SKILL_UPDATE" then
+		CRAFTER_TODO_UI:CreateTradeSkillButton()
+		CRAFTER_TODO_UI:UpdateTradeSkillButton()
 	end
 end
 
@@ -90,6 +101,7 @@ function CRAFTER_TODO_CORE:UpdateItemCounts()
 	-- Refresh UI if visible
 	if CRAFTER_TODO_UI.isVisible then
 		CRAFTER_TODO_UI:RefreshTodoList()
+		CRAFTER_TODO_UI:RefreshShoppingList()
 	end
 end
 
