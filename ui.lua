@@ -59,8 +59,13 @@ function CRAFTER_TODO_UI:CreateMainFrame()
 	titleBar:SetBackdropBorderColor(0.6, 0.6, 0.6)
 	
 	-- Title Text
+	local titleIcon = titleBar:CreateTexture(nil, "ARTWORK")
+	titleIcon:SetSize(16, 16)
+	titleIcon:SetPoint("LEFT", titleBar, "LEFT", 8, 0)
+	titleIcon:SetTexture("Interface\\AddOns\\CrafterTodo\\img\\Copilot_20260226_140625.tga")
+
 	local titleText = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-	titleText:SetPoint("LEFT", titleBar, "LEFT", 10, 0)
+	titleText:SetPoint("LEFT", titleIcon, "RIGHT", 6, 0)
 	titleText:SetText(CRAFTER_TODO_GetString("addon_name"))
 	
 	-- Close Button
@@ -118,8 +123,10 @@ function CRAFTER_TODO_UI:RefreshTodoList()
 	
 	local todos = CRAFTER_TODO:GetAllTodos()
 	local yOffset = 0
+	local hasSelected = false
 	
 	if #todos == 0 then
+		self.selectedTodoId = nil
 		local emptyText = self.todoListFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 		emptyText:SetPoint("TOPLEFT", self.todoListFrame, "TOPLEFT", 10, -10)
 		emptyText:SetText(CRAFTER_TODO_GetString("no_todos"))
@@ -127,10 +134,17 @@ function CRAFTER_TODO_UI:RefreshTodoList()
 		yOffset = 30
 	else
 		for _, todo in ipairs(todos) do
+			if todo.id == self.selectedTodoId then
+				hasSelected = true
+			end
 			local todoFrame = self:CreateTodoFrame(todo, yOffset)
 			table.insert(self.todoFrames, todoFrame)
 			yOffset = yOffset + self:GetTodoFrameHeight(todo)
 		end
+	end
+	
+	if self.selectedTodoId and not hasSelected then
+		self.selectedTodoId = nil
 	end
 	
 	self.todoListFrame:SetHeight(math.max(yOffset, 20))
@@ -149,10 +163,20 @@ function CRAFTER_TODO_UI:CreateTodoFrame(todo, yOffset)
 		tileSize = 16,
 		edgeSize = 1,
 	})
+
+	frame:EnableMouse(true)
+	frame:SetScript("OnMouseDown", function()
+		CRAFTER_TODO_UI.selectedTodoId = todo.id
+		CRAFTER_TODO_UI:RefreshTodoList()
+	end)
 	
 	local bgColor = todo.completed and {0.2, 0.3, 0.2, 0.5} or {0.15, 0.15, 0.15, 0.5}
 	frame:SetBackdropColor(bgColor[1], bgColor[2], bgColor[3], bgColor[4])
-	frame:SetBackdropBorderColor(0.4, 0.4, 0.4)
+	if todo.id == self.selectedTodoId then
+		frame:SetBackdropBorderColor(0.9, 0.8, 0.4)
+	else
+		frame:SetBackdropBorderColor(0.4, 0.4, 0.4)
+	end
 	
 	-- Checkbox
 	local checkbox = CreateFrame("CheckButton", nil, frame, "ChatConfigCheckButtonTemplate")

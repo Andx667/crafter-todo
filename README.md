@@ -1,5 +1,7 @@
 # Crafter Todo
 
+![Crafter Todo addon screenshot](img/Copilot_20260226_140625.png)
+
 Crafter Todo is a clean and intuitive World of Warcraft Burning Crusade addon for crafting notes and todo lists. Track projects, required materials, and progress in one place.
 
 ## Features

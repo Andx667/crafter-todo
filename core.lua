@@ -5,6 +5,39 @@ CRAFTER_TODO_CORE = {
 	isInitialized = false,
 }
 
+local function TryAddMaterialFromLink(link)
+	if not link or not IsShiftKeyDown() or not CRAFTER_TODO_UI.isVisible then
+		return
+	end
+
+	local itemId = tonumber(string.match(link, "item:(%d+)"))
+	if not itemId then
+		return
+	end
+
+	local itemName = GetItemInfo(itemId)
+	if not itemName then
+		return
+	end
+
+	local selectedTodo = CRAFTER_TODO:GetTodo(CRAFTER_TODO_UI.selectedTodoId)
+	if selectedTodo and selectedTodo.type == "materials" then
+		CRAFTER_TODO:AddMaterial(selectedTodo.id, itemName, 1, itemId)
+		CRAFTER_TODO_UI:RefreshTodoList()
+		print(string.format("|cff00ff00Added %s to current todo|r", itemName))
+	else
+		print("|cffff0000Please select a materials-type todo first|r")
+	end
+end
+
+local eventFrame = CreateFrame("Frame", "CrafterTodoEventFrame")
+eventFrame:RegisterEvent("ADDON_LOADED")
+eventFrame:RegisterEvent("PLAYER_LOGOUT")
+eventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
+eventFrame:SetScript("OnEvent", function(_, event, ...)
+	CRAFTER_TODO_CORE:OnEvent(event, ...)
+end)
+
 -- Initialize the addon
 function CRAFTER_TODO_CORE:Initialize()
 	if self.isInitialized then
@@ -19,19 +52,7 @@ function CRAFTER_TODO_CORE:Initialize()
 		CRAFTER_TODO_UI:CreateMinimapButton()
 	end
 	
-	-- Register events
-	local frame = CreateFrame("Frame", "CrafterTodoEventFrame")
-	frame:RegisterEvent("ADDON_LOADED")
-	frame:RegisterEvent("PLAYER_LOGOUT")
-	frame:RegisterEvent("BAG_UPDATE")
-	frame:RegisterEvent("ITEM_LOCK_CHANGED")
-	
-	-- Set event handler
-	frame:SetScript("OnEvent", function(self, event, ...)
-		CRAFTER_TODO_CORE:OnEvent(event, ...)
-	end)
-	
-	self.frame = frame
+	self.frame = eventFrame
 	self.isInitialized = true
 	
 	print("|cff00ff00Crafter Todo|r loaded! Use |cff00ff00/ctt|r for commands.")
@@ -46,7 +67,7 @@ function CRAFTER_TODO_CORE:OnEvent(event, ...)
 		end
 	elseif event == "PLAYER_LOGOUT" then
 		-- Saved variables are automatically saved by WoW
-	elseif event == "BAG_UPDATE" or event == "ITEM_LOCK_CHANGED" then
+	elseif event == "BAG_UPDATE_DELAYED" then
 		-- Update item counts in materials
 		CRAFTER_TODO_CORE:UpdateItemCounts()
 	end
@@ -59,7 +80,7 @@ function CRAFTER_TODO_CORE:UpdateItemCounts()
 		if todo.type == "materials" then
 			for i, material in ipairs(todo.materials) do
 				if material.itemId and material.itemId > 0 then
-					local count = GetItemCount(material.itemId, false)
+					local count = GetItemCount(material.itemId, true)
 					material.owned = count
 				end
 			end
@@ -136,31 +157,13 @@ StaticPopupDialogs["CRAFTER_TODO_CONFIRM_CLEAR"] = {
 }
 
 -- Hook into item linking for shift-click functionality
-local originalSetHyperlink = ItemRefTooltip.SetHyperlink
-function ItemRefTooltip_SetHyperlink(link)
-	if IsShiftKeyDown() and CRAFTER_TODO_UI.isVisible then
-		-- Parse item from link
-		local itemId = tonumber(string.match(link, "item:(%d+)"))
-		local itemName = GetItemInfo(link)
-		
-		if itemId and itemName then
-			-- Show quick add dialog
-			local selectedTodo = CRAFTER_TODO:GetTodo(CRAFTER_TODO_UI.selectedTodoId)
-			if selectedTodo and selectedTodo.type == "materials" then
-				CRAFTER_TODO:AddMaterial(selectedTodo.id, itemName, 1, itemId)
-				CRAFTER_TODO_UI:RefreshTodoList()
-				print(string.format("|cff00ff00Added %s to current todo|r", itemName))
-			else
-				print("|cffff0000Please select a materials-type todo first|r")
-			end
-		end
-		return
-	end
-	
-	if originalSetHyperlink then
-		originalSetHyperlink(link)
-	end
-end
+hooksecurefunc("HandleModifiedItemClick", function(link)
+	TryAddMaterialFromLink(link)
+end)
+
+hooksecurefunc("SetItemRef", function(link)
+	TryAddMaterialFromLink(link)
+end)
 
 -- Initialize addon when WoW loads
 if GetAddOnEnablement("player", "CrafterTodo") then
