@@ -1,47 +1,61 @@
 # Crafter Todo - Contributing Guide
 
-Thank you for your interest in contributing to Crafter Todo! This guide will help you get started.
+Thanks for helping improve Crafter Todo. This guide covers issue reporting, feature requests, development setup, and the PR process.
 
-## How to Contribute
+## Before You Start
 
-### Reporting Bugs
+- Search existing issues to avoid duplicates
+- Keep reports focused and actionable
+- Include context (game version, addon version, steps to reproduce)
 
-1. Check existing [GitHub Issues](https://github.com/yourusername/CrafterTodo/issues) to avoid duplicates
-2. Create a new issue with:
-   - Clear, descriptive title
+## Reporting Bugs
+
+1. Check existing issues: https://github.com/Andx667/crafter-todo/issues
+2. Open a new issue with:
+   - Clear title
    - Steps to reproduce
    - Expected vs actual behavior
-   - Screenshots if applicable
-   - Your WoW version and addon version
+   - Screenshots if helpful
+   - Game version and addon version
 
-### Suggesting Features
+## Suggesting Features
 
-1. Open a new issue with the `feature request` label
-2. Describe the feature and use case
-3. Explain why this feature would be valuable
-4. Provide mockups if it's UI-related
+1. Open a new issue with a clear use case
+2. Explain why it helps crafters or reduces friction
+3. Add mockups if it is UI-related
 
-### Code Contributions
+## Development Setup
 
-1. **Fork** the repository
-2. **Create a branch**: `git checkout -b feature/your-feature-name`
-3. **Write clean code** following the style guide below
-4. **Test thoroughly** in WoW (both Burning Crusade and Retail if applicable)
-5. **Commit** with clear messages: `git commit -m "Add feature: description"`
-6. **Push** to your fork
-7. **Submit a Pull Request** with a detailed description
+1. Clone the repo:
+   ```bash
+   git clone https://github.com/Andx667/crafter-todo.git
+   ```
+
+2. Install into your WoW AddOns folder:
+   ```bash
+   cp -r CrafterTodo "C:\Program Files\World of Warcraft\_classic_\Interface\AddOns\"
+   ```
+
+3. Enable the addon in-game or via your addon manager
+
+### Debugging Tips
+
+- Use `/reload` to reload addon changes
+- Check console errors (ESC -> System -> Error Messages)
+- Use `print()` for quick debug output (appears in chat)
+- Use `/script` to test Lua commands in-game
 
 ## Code Style Guide
 
 ### Lua Conventions
 
-- **Indentation**: Use tabs (4 spaces)
-- **Naming**: 
-  - `camelCase` for local variables and functions: `myVariable`, `doSomething()`
+- **Indentation**: Tabs (4 spaces)
+- **Naming**:
+  - `camelCase` for locals and functions: `myVariable`, `doSomething()`
   - `UPPER_CASE` for globals and constants: `GLOBAL_TABLE`, `MAX_ITEMS`
-  - Addon prefixes for globals: `CRAFTER_TODO_*`
+  - Prefix globals with `CRAFTER_TODO_`
 - **Comments**: Use `--` for single-line, `--[[ ]]` for multi-line
-- **Functions**: Document complex functions with comments
+- **Functions**: Document complex logic with short comments
 
 ```lua
 -- Good
@@ -69,31 +83,28 @@ end
 
 ### UI Development
 
-- Use WoW's default textures and colors for consistency
-- Follow the game's visual style (Burning Crusade era)
-- Test at different UI scales
-- Ensure keyboard accessibility where possible
+- Use WoW default textures and colors
+- Follow the Burning Crusade era visual style
+- Test at multiple UI scales
 
 ## Testing Checklist
 
 Before submitting a PR, verify:
 
 - [ ] Addon loads without errors (`/reload`)
-- [ ] All new features work as intended
+- [ ] New features work as intended
 - [ ] No console errors appear
-- [ ] SavedVariables persist correctly after reload
-- [ ] UI elements are properly positioned
+- [ ] SavedVariables persist after reload
+- [ ] UI elements render correctly
 - [ ] Code follows the style guide
-- [ ] Changes are documented in comments
 
-## Commit Message Guidelines
+## Commit Messages
 
 ```
 [Feature/Fix/Docs] Brief one-line description
 
-- Detailed explanation of changes
-- Include why this change was made
-- Reference issue numbers: Closes #123
+- Why this change was made
+- Reference issues: Closes #123
 ```
 
 Examples:
@@ -107,49 +118,56 @@ Examples:
 
 ## Pull Request Process
 
-1. Update the CHANGELOG.md with your changes
-2. Reference any related issues
-3. Provide a clear description of what changed and why
-4. Include testing notes
-5. Wait for review and address feedback
-6. Maintainers will merge once approved
+1. Fork the repo and create a branch: `git checkout -b feature/your-feature-name`
+2. Make your changes and test in-game
+3. Update documentation and CHANGELOG.md if user-facing behavior changed
+4. Commit and push to your fork
+5. Open a PR with:
+   - Summary of changes
+   - Related issue links
+   - Testing notes
+6. Address review feedback
 
-## Development Environment
+## Release Process (Maintainers)
 
-### Setting Up
+### Pre-Release Checklist
 
-1. Clone the repository:
+- [ ] No Lua errors on `/reload`
+- [ ] Commands and UI flows tested
+- [ ] SavedVariables persist correctly
+- [ ] README, CHANGELOG, and CONTRIBUTING updated
+- [ ] Version updated in `CrafterTodo.toc`
+
+### Create the Release
+
+1. Update version in `CrafterTodo.toc`
+2. Update CHANGELOG.md with the new version
+3. Commit and push
+4. Tag the release:
    ```bash
-   git clone https://github.com/yourusername/CrafterTodo.git
+   git tag v1.1.0
+   git push origin v1.1.0
    ```
+5. Create a GitHub release using the tag and changelog text
+6. GitHub Actions will build and attach the ZIP
+7. Upload the ZIP to CurseForge
 
-2. Install into your WoW AddOns folder:
-   ```bash
-   cp -r CrafterTodo "C:\Program Files\World of Warcraft\_classic_\Interface\AddOns\"
-   ```
+### Build Scripts
 
-3. Enable in game or through addon manager
+- Windows: `build.bat`
+- Linux/macOS: `build.sh`
 
-### Debugging
+## Questions
 
-- Use `/reload` to reload addon changes
-- Check console for error messages (ESC → System → Error Messages)
-- Use `print()` for debugging output (appears in chat)
-- Use `/script` to test Lua commands in-game
-
-## Questions?
-
-- Open a GitHub Discussion
-- Leave a comment on the addon page
-- Email the maintainers
+- Open a GitHub Discussion or issue
+- Leave a comment on the CurseForge page
 
 ## Code of Conduct
 
-- Be respectful to all contributors
-- Provide constructive feedback
-- Avoid spam or self-promotion
-- Help others learn and grow
+- Be respectful
+- Keep feedback constructive
+- Help others learn
 
 ---
 
-Thank you for making Crafter Todo better! 🎉
+Thanks for making Crafter Todo better.
