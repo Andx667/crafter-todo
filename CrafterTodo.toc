@@ -4,7 +4,6 @@
 ## Author: Crafter Todo Team
 ## Version: 1.0.0
 ## SavedVariables: CRAFTER_TODO_DB
-## OptionalDeps: Ace3
 
 localization.lua
 core.lua

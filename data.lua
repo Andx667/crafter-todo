@@ -14,8 +14,8 @@ function CRAFTER_TODO:InitializeData()
 			settings = {
 				windowX = 100,
 				windowY = 100,
-				windowWidth = 400,
-				windowHeight = 500,
+				windowWidth = 450,
+				windowHeight = 550,
 				showOnLogin = true,
 				showMinimapButton = true,
 				categories = {

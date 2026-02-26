@@ -255,7 +255,7 @@ end
 
 -- Refresh the shopping list display
 function CRAFTER_TODO_UI:RefreshShoppingList()
-	if not self.shoppingListFrame then
+	if not self.shoppingListFrame or not self.shoppingScrollFrame then
 		return
 	end
 
@@ -351,7 +351,7 @@ end
 
 -- Enable or disable the TradeSkill button based on selection
 function CRAFTER_TODO_UI:UpdateTradeSkillButton()
-	if not self.tradeSkillButton then
+	if not self.tradeSkillButton or not self.tradeSkillButton:IsVisible() then
 		return
 	end
 
