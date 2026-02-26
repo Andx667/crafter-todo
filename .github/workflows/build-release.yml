@@ -1,0 +1,54 @@
+name: Build Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+      
+      - name: Build addon
+        run: |
+          # Create build directory
+          mkdir -p build/CrafterTodo
+          
+          # Copy addon files (excluding git, workflows, development files)
+          cp CrafterTodo.toc build/CrafterTodo/
+          cp core.lua build/CrafterTodo/
+          cp data.lua build/CrafterTodo/
+          cp ui.lua build/CrafterTodo/
+          cp localization.lua build/CrafterTodo/
+          cp LICENSE build/CrafterTodo/
+          cp README.md build/CrafterTodo/
+          cp CHANGELOG.md build/CrafterTodo/
+          cp CONTRIBUTING.md build/CrafterTodo/
+          
+          # Create distribution directory
+          mkdir -p dist
+          
+          # Create zip archive
+          cd build
+          zip -r ../dist/CrafterTodo-${{ steps.version.outputs.version }}.zip CrafterTodo/
+          cd ..
+          
+          echo "Build complete: dist/CrafterTodo-${{ steps.version.outputs.version }}.zip"
+          ls -lh dist/
+      
+      - name: Upload artifact to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/CrafterTodo-${{ steps.version.outputs.version }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,12 @@
+## Interface: 20400
+## Title: Crafter Todo
+## Notes: A note-taking and todo list addon for crafting tasks
+## Author: Crafter Todo Team
+## Version: 1.0.0
+## SavedVariables: CRAFTER_TODO_DB
+## OptionalDeps: Ace3
+
+localization.lua
+core.lua
+data.lua
+ui.lua

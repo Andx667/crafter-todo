@@ -1,0 +1,89 @@
+name: Build Test
+
+on:
+  push:
+    paths:
+      - '*.lua'
+      - '*.toc'
+      - '.github/workflows/build-test.yml'
+  pull_request:
+    paths:
+      - '*.lua'
+      - '*.toc'
+      - '.github/workflows/build-test.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Verify addon files
+        run: |
+          echo "Checking addon files..."
+          test -f CrafterTodo.toc && echo "✓ CrafterTodo.toc found" || exit 1
+          test -f core.lua && echo "✓ core.lua found" || exit 1
+          test -f data.lua && echo "✓ data.lua found" || exit 1
+          test -f ui.lua && echo "✓ ui.lua found" || exit 1
+          test -f localization.lua && echo "✓ localization.lua found" || exit 1
+          echo "All addon files present!"
+      
+      - name: Validate .toc file
+        run: |
+          echo "Validating .toc file..."
+          if grep -q "^## Interface:" CrafterTodo.toc; then
+            echo "✓ Interface version found"
+          else
+            echo "✗ Interface version missing"
+            exit 1
+          fi
+          
+          if grep -q "^## Title:" CrafterTodo.toc; then
+            echo "✓ Title found"
+          else
+            echo "✗ Title missing"
+            exit 1
+          fi
+          
+          if grep -q "^## Version:" CrafterTodo.toc; then
+            echo "✓ Version found"
+          else
+            echo "✗ Version missing"
+            exit 1
+          fi
+      
+      - name: Build addon
+        run: |
+          # Create build directory
+          mkdir -p build/CrafterTodo
+          
+          # Copy addon files
+          cp CrafterTodo.toc build/CrafterTodo/
+          cp core.lua build/CrafterTodo/
+          cp data.lua build/CrafterTodo/
+          cp ui.lua build/CrafterTodo/
+          cp localization.lua build/CrafterTodo/
+          cp LICENSE build/CrafterTodo/
+          cp README.md build/CrafterTodo/
+          cp CHANGELOG.md build/CrafterTodo/
+          cp CONTRIBUTING.md build/CrafterTodo/
+          
+          # Create distribution directory
+          mkdir -p dist
+          
+          # Create zip archive
+          cd build
+          zip -r ../dist/CrafterTodo-test.zip CrafterTodo/
+          cd ..
+          
+          echo "Build complete!"
+          ls -lh dist/
+      
+      - name: Store build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: CrafterTodo-build
+          path: dist/CrafterTodo-test.zip
+          retention-days: 7

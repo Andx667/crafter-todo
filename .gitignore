@@ -1,0 +1,61 @@
+# .gitignore for Crafter Todo Addon
+
+# WoW-specific
+*.toc.bak
+SavedVariables/
+WTF/
+Cache/
+Interface/
+Screenshots/
+Logs/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Development
+.env
+.env.local
+config.local.lua
+test-results/
+coverage/
+
+# Build and Distribution
+build/
+dist/
+*.zip
+*.rar
+*.7z
+releases/
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+.temp/
+temp/
+
+# OS files
+.DS_Store
+Thumbs.db
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Node (if using any build tools)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Python (if using any tools)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
